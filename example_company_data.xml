@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<company-data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+<record>
+	<email>taxpayer15@gmail.com</email>
+	<cuit_number>3333333</cuit_number>
+	<comencement_date>2008-10-17</comencement_date>
+	<website>www.test7lmted.com</website>
+	<individuals>
+		<individual>
+			<id>5</id>
+		</individual>
+		<individual>
+			<id>1</id>
+		</individual>
+	</individuals>
+	<phones>
+		<phone>
+			<number>30303030</number>
+			<type_id>1</type_id>
+		</phone>	
+		<phone>
+			<number>20202020</number>
+			<type_id>2</type_id>
+		</phone>
+		<phone>
+			<number>10101010</number>
+			<type_id>3</type_id>
+		</phone>		
+	</phones>		
+</record>
+
+</company-data>

@@ -5,7 +5,7 @@
 -- Dumped from database version 11.5
 -- Dumped by pg_dump version 11.5
 
--- Started on 2019-09-13 15:42:20
+-- Started on 2019-09-16 15:07:05
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -19,7 +19,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 2994 (class 1262 OID 16867)
+-- TOC entry 2997 (class 1262 OID 16867)
 -- Name: TaxesCollection; Type: DATABASE; Schema: -; Owner: postgres
 --
 
@@ -42,13 +42,157 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 2995 (class 0 OID 0)
--- Dependencies: 2994
+-- TOC entry 2998 (class 0 OID 0)
+-- Dependencies: 2997
 -- Name: DATABASE "TaxesCollection"; Type: COMMENT; Schema: -; Owner: postgres
 --
 
 COMMENT ON DATABASE "TaxesCollection" IS 'Taxes Collection Database';
 
+
+--
+-- TOC entry 231 (class 1255 OID 17889)
+-- Name: insertcompany(xml); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.insertcompany(company_data xml) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+/***********************************************************************************
+Objective: Inserts a company into DB along with their owner relationships
+Inputs: 
+company_data: XML structure with company information. XML structure example is as follows:
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<company-data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<record>
+	<email>taxpayer15@gmail.com</email>
+	<cuit_number>80808080</cuit_number>
+	<comencement_date>2005-07-10</comencement_date>
+	<website>www.abctest.com</website>
+	<individuals>
+		<individual>
+			<id>5</id>
+		</individual>
+		<individual>
+			<id>1</id>
+		</individual>
+	</individuals>
+	<phones>
+		<phone>
+			<number>7575757575</number>
+			<type_id>1</type_id>
+		</phone>	
+		<phone>
+			<number>88888888</number>
+			<type_id>2</type_id>
+		</phone>
+	</phones>		
+</record>
+</company-data>
+
+Outputs: N/A
+************************************************************************************/
+DECLARE
+	counter integer := 0;
+	ind_cant integer;
+	phone_cant integer;
+	phone_type_id_cant integer;
+	comp_id integer;
+	email varchar;
+	cuit_number varchar;
+	comencement_date date;
+	website varchar;
+	individuals integer[];
+	phone_numbers varchar[];
+	phone_type_ids integer[];
+BEGIN
+
+	email := (xpath('/company-data/record/' || 'email/text()', company_data))[1];
+	cuit_number := (xpath('/company-data/record/' || 'cuit_number/text()', company_data))[1];
+	comencement_date := (xpath('/company-data/record/' || 'comencement_date/text()', company_data))[1]::text::date;
+	website := (xpath('/company-data/record/' || 'website/text()', company_data))[1];
+	ind_cant := array_length((xpath('/company-data/record/individuals/individual/' || 'id/text()', company_data)), 1);
+	phone_cant := array_length((xpath('/company-data/record/phones/phone/' || 'number/text()', company_data)), 1);
+	phone_type_id_cant := array_length((xpath('/company-data/record/phones/phone/' || 'type_id/text()', company_data)), 1);	
+	
+	counter := 1;
+	while(counter <= ind_cant)
+	LOOP
+		individuals[counter] := (xpath('/company-data/record/individuals/individual/' || 'id/text()', company_data))[counter]::text::integer;
+		counter := counter + 1;
+	END LOOP;
+	
+	counter := 1;
+	while(counter <= phone_cant)
+	LOOP
+		phone_numbers[counter] := (xpath('/company-data/record/phones/phone/' || 'number/text()', company_data))[counter];
+		counter := counter + 1;
+	END LOOP;
+
+	counter := 1;
+	while(counter <= phone_type_id_cant)
+	LOOP
+		phone_type_ids[counter] := (xpath('/company-data/record/phones/phone/' || 'type_id/text()', company_data))[counter]::text::integer;
+		counter := counter + 1;
+	END LOOP;
+
+	--RAISE NOTICE 'email: % cuit_number: % comencement_date: % website: % individuals: % phone_numbers: % phone_type_ids: %', email, cuit_number, comencement_date, website, individuals, phone_numbers, phone_type_ids;
+	
+	IF(ind_cant = 0 OR ind_cant IS NULL) THEN
+		RAISE 'At least 1 individual that owns the company must be informed';
+	ELSE
+		IF(phone_cant = 0 OR phone_cant IS NULL) THEN
+			RAISE 'At least 1 phone number for the company must be informed';
+		ELSE
+			IF(phone_type_id_cant = 0 OR phone_type_id_cant IS NULL) THEN
+				RAISE 'Phone type ids must be informed for phone numbers';
+			ELSE
+				IF(phone_cant <> phone_type_id_cant) THEN
+					RAISE 'Quantity of phone type ids does not match the informed quantity of phone numbers';
+				ELSE
+					--Creates a taxpayer for the company
+					INSERT INTO TAXPAYER
+					(type, email)
+					VALUES
+					('C',email)
+					RETURNING taxpayer_id INTO comp_id;
+
+					--Creates the company
+					INSERT INTO COMPANY
+					(taxpayer_id, cuit_number, comencement_date, website)
+					VALUES
+					(comp_id,cuit_number,comencement_date,website);
+
+					counter := 0;
+					--Creates the ownerships for the company
+					WHILE counter < ind_cant LOOP
+						counter = counter+1;
+
+						INSERT INTO OWN_REL
+						(individual_id, company_id, start_date)
+						VALUES
+						(individuals[counter],comp_id,comencement_date);
+					END LOOP;					
+
+					--Creates the phone numbers for the company
+					counter := 0;
+					WHILE counter < phone_cant LOOP
+						counter = counter+1;
+
+						INSERT INTO TAXPAYER_PHONE_NUMBER
+						(taxpayer_id, phone_number, phone_type_id)
+						VALUES
+						(comp_id,phone_numbers[counter],phone_type_ids[counter]);
+					END LOOP;
+				END IF;
+			END IF;	
+		END IF;	
+	END IF;
+END;$$;
+
+
+ALTER FUNCTION public.insertcompany(company_data xml) OWNER TO postgres;
 
 --
 -- TOC entry 229 (class 1255 OID 17887)
@@ -163,7 +307,7 @@ END;$_$;
 ALTER FUNCTION public.inserttaxpayment(agency_id integer, taxpayer_id integer, amount numeric, payment_date date, tax_type_id integer) OWNER TO postgres;
 
 --
--- TOC entry 227 (class 1255 OID 17601)
+-- TOC entry 226 (class 1255 OID 17601)
 -- Name: ownedcompaniestaxpayed(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -194,7 +338,7 @@ END;$_$;
 ALTER FUNCTION public.ownedcompaniestaxpayed(individual_id integer) OWNER TO postgres;
 
 --
--- TOC entry 226 (class 1255 OID 17600)
+-- TOC entry 227 (class 1255 OID 17600)
 -- Name: totaltaxpermonth(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -202,9 +346,10 @@ CREATE FUNCTION public.totaltaxpermonth(taxpayer_id integer) RETURNS TABLE(tax_a
     LANGUAGE sql
     AS $_$
 /***********************************************************************************
-Objective: Returns a list of total amounts of taxes payed by a taxpayer and by month
+Objective: Returns a list of total amounts of taxes payed by a taxpayer
 Inputs: Taxpayer ID
-Outputs: A table with columns TAX_AMOUNT, YEAR, MONTH. The table is ordered by YEAR and MONTH in descending way
+Outputs: A table with columns TAX_AMOUNT, YEAR, MONTH. The information is grouped by YEAR and MONTH
+and the table is ordered by YEAR and MONTH in descending way
 ************************************************************************************/
 SELECT SUM(FOO.AMOUNT) TAX_AMOUNT, FOO.YEAR, FOO.MONTH
 FROM
@@ -217,6 +362,61 @@ $_$;
 
 
 ALTER FUNCTION public.totaltaxpermonth(taxpayer_id integer) OWNER TO postgres;
+
+--
+-- TOC entry 232 (class 1255 OID 17890)
+-- Name: totaltaxpermonth(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.totaltaxpermonth(taxpayer_id integer, year integer) RETURNS TABLE(tax_amount numeric, year double precision, month double precision)
+    LANGUAGE sql
+    AS $_$
+/***********************************************************************************
+Objective: Returns a list of total amounts of taxes payed by a taxpayer in a particular year
+Inputs: Taxpayer ID, Year
+Outputs: A table with columns TAX_AMOUNT, YEAR, MONTH. The table is ordered by YEAR and MONTH in descending way
+************************************************************************************/
+SELECT TAX_AMOUNT, YEAR, MONTH
+FROM
+(SELECT SUM(FOO.AMOUNT) TAX_AMOUNT, FOO.YEAR, FOO.MONTH
+FROM
+(SELECT AMOUNT, PAYMENT_DATE, EXTRACT (YEAR FROM PAYMENT_DATE) AS YEAR, EXTRACT (MONTH FROM PAYMENT_DATE) AS MONTH
+FROM TAX_PAYMENT A
+WHERE A.TAXPAYER_ID = $1) AS FOO
+GROUP BY FOO.YEAR, FOO.MONTH) AS FOO2
+WHERE FOO2.YEAR = $2
+ORDER BY FOO2.MONTH DESC;
+$_$;
+
+
+ALTER FUNCTION public.totaltaxpermonth(taxpayer_id integer, year integer) OWNER TO postgres;
+
+--
+-- TOC entry 230 (class 1255 OID 17891)
+-- Name: totaltaxpermonth(integer, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.totaltaxpermonth(taxpayer_id integer, year integer, month integer) RETURNS TABLE(tax_amount numeric, year double precision, month double precision)
+    LANGUAGE sql
+    AS $_$
+/***********************************************************************************
+Objective: Returns a list of total amount of taxes payed by a taxpayer in a particular year and a particular month
+Inputs: Taxpayer ID, Year, Month
+Outputs: A table with columns TAX_AMOUNT, YEAR, MONTH
+************************************************************************************/
+SELECT TAX_AMOUNT, YEAR, MONTH
+FROM
+(SELECT SUM(FOO.AMOUNT) TAX_AMOUNT, FOO.YEAR, FOO.MONTH
+FROM
+(SELECT AMOUNT, PAYMENT_DATE, EXTRACT (YEAR FROM PAYMENT_DATE) AS YEAR, EXTRACT (MONTH FROM PAYMENT_DATE) AS MONTH
+FROM TAX_PAYMENT A
+WHERE A.TAXPAYER_ID = $1) AS FOO
+GROUP BY FOO.YEAR, FOO.MONTH) AS FOO2
+WHERE FOO2.YEAR = $2 AND FOO2.MONTH = $3;
+$_$;
+
+
+ALTER FUNCTION public.totaltaxpermonth(taxpayer_id integer, year integer, month integer) OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -257,7 +457,7 @@ CREATE SEQUENCE public.agency_agency_id_seq
 ALTER TABLE public.agency_agency_id_seq OWNER TO postgres;
 
 --
--- TOC entry 2997 (class 0 OID 0)
+-- TOC entry 3000 (class 0 OID 0)
 -- Dependencies: 206
 -- Name: agency_agency_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -299,7 +499,7 @@ CREATE SEQUENCE public.agency_phone_number_rel_id_seq
 ALTER TABLE public.agency_phone_number_rel_id_seq OWNER TO postgres;
 
 --
--- TOC entry 2999 (class 0 OID 0)
+-- TOC entry 3002 (class 0 OID 0)
 -- Dependencies: 208
 -- Name: agency_phone_number_rel_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -377,7 +577,7 @@ CREATE SEQUENCE public.own_rel_rel_id_seq
 ALTER TABLE public.own_rel_rel_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3003 (class 0 OID 0)
+-- TOC entry 3006 (class 0 OID 0)
 -- Dependencies: 204
 -- Name: own_rel_rel_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -417,7 +617,7 @@ CREATE SEQUENCE public.phone_type_phone_type_id_seq
 ALTER TABLE public.phone_type_phone_type_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3005 (class 0 OID 0)
+-- TOC entry 3008 (class 0 OID 0)
 -- Dependencies: 200
 -- Name: phone_type_phone_type_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -461,7 +661,7 @@ CREATE SEQUENCE public.tax_payment_payment_id_seq
 ALTER TABLE public.tax_payment_payment_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3007 (class 0 OID 0)
+-- TOC entry 3010 (class 0 OID 0)
 -- Dependencies: 210
 -- Name: tax_payment_payment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -501,7 +701,7 @@ CREATE SEQUENCE public.tax_type_tax_type_id_seq
 ALTER TABLE public.tax_type_tax_type_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3009 (class 0 OID 0)
+-- TOC entry 3012 (class 0 OID 0)
 -- Dependencies: 212
 -- Name: tax_type_tax_type_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -559,7 +759,7 @@ CREATE SEQUENCE public.taxpayer_phone_number_rel_id_seq
 ALTER TABLE public.taxpayer_phone_number_rel_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3012 (class 0 OID 0)
+-- TOC entry 3015 (class 0 OID 0)
 -- Dependencies: 198
 -- Name: taxpayer_phone_number_rel_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -584,7 +784,7 @@ CREATE SEQUENCE public.taxpayer_taxpayer_id_seq
 ALTER TABLE public.taxpayer_taxpayer_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3013 (class 0 OID 0)
+-- TOC entry 3016 (class 0 OID 0)
 -- Dependencies: 196
 -- Name: taxpayer_taxpayer_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -593,7 +793,7 @@ ALTER SEQUENCE public.taxpayer_taxpayer_id_seq OWNED BY public.taxpayer.taxpayer
 
 
 --
--- TOC entry 2777 (class 2604 OID 17497)
+-- TOC entry 2780 (class 2604 OID 17497)
 -- Name: agency agency_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -601,7 +801,7 @@ ALTER TABLE ONLY public.agency ALTER COLUMN agency_id SET DEFAULT nextval('publi
 
 
 --
--- TOC entry 2781 (class 2604 OID 17510)
+-- TOC entry 2784 (class 2604 OID 17510)
 -- Name: agency_phone_number rel_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -609,7 +809,7 @@ ALTER TABLE ONLY public.agency_phone_number ALTER COLUMN rel_id SET DEFAULT next
 
 
 --
--- TOC entry 2771 (class 2604 OID 17486)
+-- TOC entry 2774 (class 2604 OID 17486)
 -- Name: own_rel rel_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -617,7 +817,7 @@ ALTER TABLE ONLY public.own_rel ALTER COLUMN rel_id SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 2759 (class 2604 OID 17455)
+-- TOC entry 2762 (class 2604 OID 17455)
 -- Name: phone_type phone_type_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -625,7 +825,7 @@ ALTER TABLE ONLY public.phone_type ALTER COLUMN phone_type_id SET DEFAULT nextva
 
 
 --
--- TOC entry 2785 (class 2604 OID 17521)
+-- TOC entry 2788 (class 2604 OID 17521)
 -- Name: tax_payment payment_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -633,7 +833,7 @@ ALTER TABLE ONLY public.tax_payment ALTER COLUMN payment_id SET DEFAULT nextval(
 
 
 --
--- TOC entry 2792 (class 2604 OID 17532)
+-- TOC entry 2795 (class 2604 OID 17532)
 -- Name: tax_type tax_type_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -641,7 +841,7 @@ ALTER TABLE ONLY public.tax_type ALTER COLUMN tax_type_id SET DEFAULT nextval('p
 
 
 --
--- TOC entry 2749 (class 2604 OID 17433)
+-- TOC entry 2752 (class 2604 OID 17433)
 -- Name: taxpayer taxpayer_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -649,7 +849,7 @@ ALTER TABLE ONLY public.taxpayer ALTER COLUMN taxpayer_id SET DEFAULT nextval('p
 
 
 --
--- TOC entry 2755 (class 2604 OID 17444)
+-- TOC entry 2758 (class 2604 OID 17444)
 -- Name: taxpayer_phone_number rel_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -657,7 +857,7 @@ ALTER TABLE ONLY public.taxpayer_phone_number ALTER COLUMN rel_id SET DEFAULT ne
 
 
 --
--- TOC entry 2982 (class 0 OID 17494)
+-- TOC entry 2985 (class 0 OID 17494)
 -- Dependencies: 207
 -- Data for Name: agency; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -669,7 +869,7 @@ INSERT INTO public.agency (agency_id, number, address, person_in_charge, number_
 
 
 --
--- TOC entry 2984 (class 0 OID 17507)
+-- TOC entry 2987 (class 0 OID 17507)
 -- Dependencies: 209
 -- Data for Name: agency_phone_number; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -680,7 +880,7 @@ INSERT INTO public.agency_phone_number (rel_id, agency_id, phone_number, phone_t
 
 
 --
--- TOC entry 2978 (class 0 OID 17471)
+-- TOC entry 2981 (class 0 OID 17471)
 -- Dependencies: 203
 -- Data for Name: company; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -698,10 +898,13 @@ INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website,
 INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (32, '3333333', '2008-10-17', 'www.test7lmted.com', '2019-09-13 10:49:34.202729', 'postgres');
 INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (34, '444444444', '2009-11-07', 'www.test8lmted.com', '2019-09-13 10:54:32.440007', 'postgres');
 INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (38, '5555', '2010-12-07', 'www.test9lmted.com', '2019-09-13 11:01:18.111006', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (41, '80808080', '2005-07-10', 'www.abctest.com', '2019-09-16 11:00:39.448538', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (42, '9191', '2010-08-10', 'www.truetest.com', '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (47, '4040', '2011-08-10', 'www.truetest.com', '2019-09-16 11:14:18.990897', 'postgres');
 
 
 --
--- TOC entry 2977 (class 0 OID 17463)
+-- TOC entry 2980 (class 0 OID 17463)
 -- Dependencies: 202
 -- Data for Name: individual; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -711,7 +914,7 @@ INSERT INTO public.individual (taxpayer_id, doc_number, first_name, last_name, d
 
 
 --
--- TOC entry 2980 (class 0 OID 17483)
+-- TOC entry 2983 (class 0 OID 17483)
 -- Dependencies: 205
 -- Data for Name: own_rel; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -731,10 +934,14 @@ INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, creat
 INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (26, 5, 34, '2009-11-07 00:00:00', '2019-09-13 10:54:32.440007', 'postgres');
 INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (27, 1, 38, '2010-12-07 00:00:00', '2019-09-13 11:01:18.111006', 'postgres');
 INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (28, 5, 38, '2010-12-07 00:00:00', '2019-09-13 11:01:18.111006', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (29, 5, 42, '2010-08-10 00:00:00', '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (30, 1, 42, '2010-08-10 00:00:00', '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (34, 5, 47, '2011-08-10 00:00:00', '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (35, 1, 47, '2011-08-10 00:00:00', '2019-09-16 11:14:18.990897', 'postgres');
 
 
 --
--- TOC entry 2976 (class 0 OID 17452)
+-- TOC entry 2979 (class 0 OID 17452)
 -- Dependencies: 201
 -- Data for Name: phone_type; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -745,7 +952,7 @@ INSERT INTO public.phone_type (phone_type_id, type, created_at, created_by) VALU
 
 
 --
--- TOC entry 2986 (class 0 OID 17518)
+-- TOC entry 2989 (class 0 OID 17518)
 -- Dependencies: 211
 -- Data for Name: tax_payment; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -771,10 +978,23 @@ INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, paym
 INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (26, 3, 7, 1000, '2019-02-21 00:00:00', 2, '2019-09-13 09:35:26.074262', 'postgres');
 INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (27, 1, 7, 2000, '2019-03-21 00:00:00', 3, '2019-09-13 09:37:23.303826', 'postgres');
 INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (28, 2, 38, 8000, '2019-09-13 00:00:00', 4, '2019-09-13 11:20:10.332918', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (36, 2, 42, 290, '2018-03-14 00:00:00', 1, '2019-09-16 11:59:33.796616', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (37, 1, 42, 370, '2018-03-22 00:00:00', 2, '2019-09-16 11:59:33.796616', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (38, 1, 42, 500, '2018-03-25 00:00:00', 4, '2019-09-16 11:59:33.796616', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (39, 2, 42, 570, '2018-10-22 00:00:00', 4, '2019-09-16 11:59:33.796616', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (40, 1, 47, 1000, '2018-10-01 00:00:00', 4, '2019-09-16 11:59:33.796616', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (41, 2, 42, 800, '2019-03-14 00:00:00', 1, '2019-09-16 12:01:22.204421', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (42, 2, 42, 900, '2019-04-17 00:00:00', 3, '2019-09-16 14:16:45.237399', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (44, 2, 42, 1500, '2019-05-17 00:00:00', 4, '2019-09-16 14:19:44.594542', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (45, 2, 42, 550, '2018-05-17 00:00:00', 1, '2019-09-16 14:20:25.751476', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (46, 2, 42, 2000, '2017-02-15 00:00:00', 1, '2019-09-16 14:21:03.680738', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (47, 2, 42, 3000, '2017-03-15 00:00:00', 1, '2019-09-16 14:21:32.431987', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (48, 2, 42, 950, '2017-04-15 00:00:00', 4, '2019-09-16 14:21:44.771896', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (49, 2, 42, 1000, '2017-04-22 00:00:00', 3, '2019-09-16 14:22:08.209987', 'postgres');
 
 
 --
--- TOC entry 2988 (class 0 OID 17529)
+-- TOC entry 2991 (class 0 OID 17529)
 -- Dependencies: 213
 -- Data for Name: tax_type; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -786,7 +1006,7 @@ INSERT INTO public.tax_type (tax_type_id, type, created_at, created_by) VALUES (
 
 
 --
--- TOC entry 2972 (class 0 OID 17430)
+-- TOC entry 2975 (class 0 OID 17430)
 -- Dependencies: 197
 -- Data for Name: taxpayer; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -807,10 +1027,13 @@ INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) V
 INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (32, 'C', 'taxpayer15@gmail.com', '2019-09-13 10:49:34.202729', 'postgres');
 INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (34, 'C', 'taxpayer16@gmail.com', '2019-09-13 10:54:32.440007', 'postgres');
 INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (38, 'C', 'taxpayer17@gmail.com', '2019-09-13 11:01:18.111006', 'postgres');
+INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (41, 'C', 'taxpayer15@gmail.com', '2019-09-16 11:00:39.448538', 'postgres');
+INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (42, 'C', 'taxpayer18@gmail.com', '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (47, 'C', 'taxpayer18@gmail.com', '2019-09-16 11:14:18.990897', 'postgres');
 
 
 --
--- TOC entry 2974 (class 0 OID 17441)
+-- TOC entry 2977 (class 0 OID 17441)
 -- Dependencies: 199
 -- Data for Name: taxpayer_phone_number; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -831,10 +1054,19 @@ INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, pho
 INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (21, 38, '41414141', 3, '2019-09-13 11:01:18.111006', 'postgres');
 INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (22, 38, '71717171', 1, '2019-09-13 11:01:18.111006', 'postgres');
 INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (23, 38, '9191919191', 2, '2019-09-13 11:01:18.111006', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (27, 41, '7575757575', 1, '2019-09-16 11:00:39.448538', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (28, 41, '88888888', 2, '2019-09-16 11:00:39.448538', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (29, 41, '7777777777', 3, '2019-09-16 11:00:39.448538', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (30, 42, '5454545454', 1, '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (31, 42, '10203040', 2, '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (32, 42, '7777777777', 3, '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (33, 47, '5454545454', 1, '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (34, 47, '10203040', 2, '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (35, 47, '7777777777', 3, '2019-09-16 11:14:18.990897', 'postgres');
 
 
 --
--- TOC entry 3014 (class 0 OID 0)
+-- TOC entry 3017 (class 0 OID 0)
 -- Dependencies: 206
 -- Name: agency_agency_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -843,7 +1075,7 @@ SELECT pg_catalog.setval('public.agency_agency_id_seq', 7, true);
 
 
 --
--- TOC entry 3015 (class 0 OID 0)
+-- TOC entry 3018 (class 0 OID 0)
 -- Dependencies: 208
 -- Name: agency_phone_number_rel_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -852,16 +1084,16 @@ SELECT pg_catalog.setval('public.agency_phone_number_rel_id_seq', 3, true);
 
 
 --
--- TOC entry 3016 (class 0 OID 0)
+-- TOC entry 3019 (class 0 OID 0)
 -- Dependencies: 204
 -- Name: own_rel_rel_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.own_rel_rel_id_seq', 28, true);
+SELECT pg_catalog.setval('public.own_rel_rel_id_seq', 35, true);
 
 
 --
--- TOC entry 3017 (class 0 OID 0)
+-- TOC entry 3020 (class 0 OID 0)
 -- Dependencies: 200
 -- Name: phone_type_phone_type_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -870,16 +1102,16 @@ SELECT pg_catalog.setval('public.phone_type_phone_type_id_seq', 3, true);
 
 
 --
--- TOC entry 3018 (class 0 OID 0)
+-- TOC entry 3021 (class 0 OID 0)
 -- Dependencies: 210
 -- Name: tax_payment_payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.tax_payment_payment_id_seq', 35, true);
+SELECT pg_catalog.setval('public.tax_payment_payment_id_seq', 49, true);
 
 
 --
--- TOC entry 3019 (class 0 OID 0)
+-- TOC entry 3022 (class 0 OID 0)
 -- Dependencies: 212
 -- Name: tax_type_tax_type_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -888,25 +1120,25 @@ SELECT pg_catalog.setval('public.tax_type_tax_type_id_seq', 4, true);
 
 
 --
--- TOC entry 3020 (class 0 OID 0)
+-- TOC entry 3023 (class 0 OID 0)
 -- Dependencies: 198
 -- Name: taxpayer_phone_number_rel_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.taxpayer_phone_number_rel_id_seq', 23, true);
+SELECT pg_catalog.setval('public.taxpayer_phone_number_rel_id_seq', 35, true);
 
 
 --
--- TOC entry 3021 (class 0 OID 0)
+-- TOC entry 3024 (class 0 OID 0)
 -- Dependencies: 196
 -- Name: taxpayer_taxpayer_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.taxpayer_taxpayer_id_seq', 39, true);
+SELECT pg_catalog.setval('public.taxpayer_taxpayer_id_seq', 49, true);
 
 
 --
--- TOC entry 2789 (class 2606 OID 17821)
+-- TOC entry 2792 (class 2606 OID 17821)
 -- Name: tax_payment CHK_Amount; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -915,7 +1147,7 @@ ALTER TABLE public.tax_payment
 
 
 --
--- TOC entry 2769 (class 2606 OID 17813)
+-- TOC entry 2772 (class 2606 OID 17813)
 -- Name: company CHK_Comencement_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -924,7 +1156,7 @@ ALTER TABLE public.company
 
 
 --
--- TOC entry 2780 (class 2606 OID 17814)
+-- TOC entry 2783 (class 2606 OID 17814)
 -- Name: agency CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -933,7 +1165,7 @@ ALTER TABLE public.agency
 
 
 --
--- TOC entry 2784 (class 2606 OID 17815)
+-- TOC entry 2787 (class 2606 OID 17815)
 -- Name: agency_phone_number CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -942,7 +1174,7 @@ ALTER TABLE public.agency_phone_number
 
 
 --
--- TOC entry 2770 (class 2606 OID 17816)
+-- TOC entry 2773 (class 2606 OID 17816)
 -- Name: company CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -951,7 +1183,7 @@ ALTER TABLE public.company
 
 
 --
--- TOC entry 2765 (class 2606 OID 17818)
+-- TOC entry 2768 (class 2606 OID 17818)
 -- Name: individual CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -960,7 +1192,7 @@ ALTER TABLE public.individual
 
 
 --
--- TOC entry 2775 (class 2606 OID 17819)
+-- TOC entry 2778 (class 2606 OID 17819)
 -- Name: own_rel CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -969,7 +1201,7 @@ ALTER TABLE public.own_rel
 
 
 --
--- TOC entry 2762 (class 2606 OID 17820)
+-- TOC entry 2765 (class 2606 OID 17820)
 -- Name: phone_type CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -978,7 +1210,7 @@ ALTER TABLE public.phone_type
 
 
 --
--- TOC entry 2790 (class 2606 OID 17823)
+-- TOC entry 2793 (class 2606 OID 17823)
 -- Name: tax_payment CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -987,7 +1219,7 @@ ALTER TABLE public.tax_payment
 
 
 --
--- TOC entry 2795 (class 2606 OID 17824)
+-- TOC entry 2798 (class 2606 OID 17824)
 -- Name: tax_type CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -996,7 +1228,7 @@ ALTER TABLE public.tax_type
 
 
 --
--- TOC entry 2758 (class 2606 OID 17825)
+-- TOC entry 2761 (class 2606 OID 17825)
 -- Name: taxpayer_phone_number CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1005,7 +1237,7 @@ ALTER TABLE public.taxpayer_phone_number
 
 
 --
--- TOC entry 2752 (class 2606 OID 17826)
+-- TOC entry 2755 (class 2606 OID 17826)
 -- Name: taxpayer CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1014,7 +1246,7 @@ ALTER TABLE public.taxpayer
 
 
 --
--- TOC entry 2766 (class 2606 OID 17817)
+-- TOC entry 2769 (class 2606 OID 17817)
 -- Name: individual CHK_Date_Of_Birth; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1023,7 +1255,7 @@ ALTER TABLE public.individual
 
 
 --
--- TOC entry 2753 (class 2606 OID 17829)
+-- TOC entry 2756 (class 2606 OID 17829)
 -- Name: taxpayer CHK_Email; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1032,7 +1264,7 @@ ALTER TABLE public.taxpayer
 
 
 --
--- TOC entry 2791 (class 2606 OID 17822)
+-- TOC entry 2794 (class 2606 OID 17822)
 -- Name: tax_payment CHK_Payment_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1041,7 +1273,7 @@ ALTER TABLE public.tax_payment
 
 
 --
--- TOC entry 2776 (class 2606 OID 17841)
+-- TOC entry 2779 (class 2606 OID 17841)
 -- Name: own_rel CHK_Start_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1050,7 +1282,7 @@ ALTER TABLE public.own_rel
 
 
 --
--- TOC entry 2754 (class 2606 OID 17827)
+-- TOC entry 2757 (class 2606 OID 17827)
 -- Name: taxpayer CHK_Type; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1059,7 +1291,7 @@ ALTER TABLE public.taxpayer
 
 
 --
--- TOC entry 2815 (class 2606 OID 17504)
+-- TOC entry 2818 (class 2606 OID 17504)
 -- Name: agency agency_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1068,7 +1300,7 @@ ALTER TABLE ONLY public.agency
 
 
 --
--- TOC entry 2819 (class 2606 OID 17515)
+-- TOC entry 2822 (class 2606 OID 17515)
 -- Name: agency_phone_number agency_phone_number_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1077,7 +1309,7 @@ ALTER TABLE ONLY public.agency_phone_number
 
 
 --
--- TOC entry 2817 (class 2606 OID 17502)
+-- TOC entry 2820 (class 2606 OID 17502)
 -- Name: agency agency_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1086,7 +1318,7 @@ ALTER TABLE ONLY public.agency
 
 
 --
--- TOC entry 2808 (class 2606 OID 17480)
+-- TOC entry 2811 (class 2606 OID 17480)
 -- Name: company company_cuit_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1095,7 +1327,7 @@ ALTER TABLE ONLY public.company
 
 
 --
--- TOC entry 2810 (class 2606 OID 17478)
+-- TOC entry 2813 (class 2606 OID 17478)
 -- Name: company company_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1104,7 +1336,7 @@ ALTER TABLE ONLY public.company
 
 
 --
--- TOC entry 2806 (class 2606 OID 17470)
+-- TOC entry 2809 (class 2606 OID 17470)
 -- Name: individual individual_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1113,7 +1345,7 @@ ALTER TABLE ONLY public.individual
 
 
 --
--- TOC entry 2812 (class 2606 OID 17491)
+-- TOC entry 2815 (class 2606 OID 17491)
 -- Name: own_rel own_rel_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1122,7 +1354,7 @@ ALTER TABLE ONLY public.own_rel
 
 
 --
--- TOC entry 2802 (class 2606 OID 17460)
+-- TOC entry 2805 (class 2606 OID 17460)
 -- Name: phone_type phone_type_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1131,7 +1363,7 @@ ALTER TABLE ONLY public.phone_type
 
 
 --
--- TOC entry 2804 (class 2606 OID 17462)
+-- TOC entry 2807 (class 2606 OID 17462)
 -- Name: phone_type phone_type_type_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1140,7 +1372,7 @@ ALTER TABLE ONLY public.phone_type
 
 
 --
--- TOC entry 2822 (class 2606 OID 17526)
+-- TOC entry 2825 (class 2606 OID 17526)
 -- Name: tax_payment tax_payment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1149,7 +1381,7 @@ ALTER TABLE ONLY public.tax_payment
 
 
 --
--- TOC entry 2825 (class 2606 OID 17537)
+-- TOC entry 2828 (class 2606 OID 17537)
 -- Name: tax_type tax_type_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1158,7 +1390,7 @@ ALTER TABLE ONLY public.tax_type
 
 
 --
--- TOC entry 2827 (class 2606 OID 17539)
+-- TOC entry 2830 (class 2606 OID 17539)
 -- Name: tax_type tax_type_type_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1167,7 +1399,7 @@ ALTER TABLE ONLY public.tax_type
 
 
 --
--- TOC entry 2799 (class 2606 OID 17449)
+-- TOC entry 2802 (class 2606 OID 17449)
 -- Name: taxpayer_phone_number taxpayer_phone_number_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1176,7 +1408,7 @@ ALTER TABLE ONLY public.taxpayer_phone_number
 
 
 --
--- TOC entry 2797 (class 2606 OID 17438)
+-- TOC entry 2800 (class 2606 OID 17438)
 -- Name: taxpayer taxpayer_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1185,7 +1417,7 @@ ALTER TABLE ONLY public.taxpayer
 
 
 --
--- TOC entry 2820 (class 1259 OID 17597)
+-- TOC entry 2823 (class 1259 OID 17597)
 -- Name: agency_phone_number_u_1; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1193,7 +1425,7 @@ CREATE UNIQUE INDEX agency_phone_number_u_1 ON public.agency_phone_number USING 
 
 
 --
--- TOC entry 2813 (class 1259 OID 17596)
+-- TOC entry 2816 (class 1259 OID 17596)
 -- Name: own_rel_u_1; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1201,7 +1433,7 @@ CREATE UNIQUE INDEX own_rel_u_1 ON public.own_rel USING btree (individual_id, co
 
 
 --
--- TOC entry 2823 (class 1259 OID 17598)
+-- TOC entry 2826 (class 1259 OID 17598)
 -- Name: tax_payment_u_1; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1209,7 +1441,7 @@ CREATE UNIQUE INDEX tax_payment_u_1 ON public.tax_payment USING btree (agency_id
 
 
 --
--- TOC entry 2800 (class 1259 OID 17595)
+-- TOC entry 2803 (class 1259 OID 17595)
 -- Name: taxpayer_phone_number_u_1; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1217,7 +1449,7 @@ CREATE UNIQUE INDEX taxpayer_phone_number_u_1 ON public.taxpayer_phone_number US
 
 
 --
--- TOC entry 2834 (class 2606 OID 17570)
+-- TOC entry 2837 (class 2606 OID 17570)
 -- Name: agency_phone_number agency_phone_number_agency_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1226,7 +1458,7 @@ ALTER TABLE ONLY public.agency_phone_number
 
 
 --
--- TOC entry 2835 (class 2606 OID 17575)
+-- TOC entry 2838 (class 2606 OID 17575)
 -- Name: agency_phone_number agency_phone_number_phone_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1235,7 +1467,7 @@ ALTER TABLE ONLY public.agency_phone_number
 
 
 --
--- TOC entry 2831 (class 2606 OID 17555)
+-- TOC entry 2834 (class 2606 OID 17555)
 -- Name: company company_taxpayer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1244,7 +1476,7 @@ ALTER TABLE ONLY public.company
 
 
 --
--- TOC entry 2830 (class 2606 OID 17550)
+-- TOC entry 2833 (class 2606 OID 17550)
 -- Name: individual individual_taxpayer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1253,7 +1485,7 @@ ALTER TABLE ONLY public.individual
 
 
 --
--- TOC entry 2833 (class 2606 OID 17864)
+-- TOC entry 2836 (class 2606 OID 17864)
 -- Name: own_rel own_rel_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1262,7 +1494,7 @@ ALTER TABLE ONLY public.own_rel
 
 
 --
--- TOC entry 2832 (class 2606 OID 17859)
+-- TOC entry 2835 (class 2606 OID 17859)
 -- Name: own_rel own_rel_individual_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1271,7 +1503,7 @@ ALTER TABLE ONLY public.own_rel
 
 
 --
--- TOC entry 2836 (class 2606 OID 17580)
+-- TOC entry 2839 (class 2606 OID 17580)
 -- Name: tax_payment tax_payment_agency_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1280,7 +1512,7 @@ ALTER TABLE ONLY public.tax_payment
 
 
 --
--- TOC entry 2838 (class 2606 OID 17590)
+-- TOC entry 2841 (class 2606 OID 17590)
 -- Name: tax_payment tax_payment_tax_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1289,7 +1521,7 @@ ALTER TABLE ONLY public.tax_payment
 
 
 --
--- TOC entry 2837 (class 2606 OID 17585)
+-- TOC entry 2840 (class 2606 OID 17585)
 -- Name: tax_payment tax_payment_taxpayer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1298,7 +1530,7 @@ ALTER TABLE ONLY public.tax_payment
 
 
 --
--- TOC entry 2829 (class 2606 OID 17545)
+-- TOC entry 2832 (class 2606 OID 17545)
 -- Name: taxpayer_phone_number taxpayer_phone_number_phone_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1307,7 +1539,7 @@ ALTER TABLE ONLY public.taxpayer_phone_number
 
 
 --
--- TOC entry 2828 (class 2606 OID 17540)
+-- TOC entry 2831 (class 2606 OID 17540)
 -- Name: taxpayer_phone_number taxpayer_phone_number_taxpayer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1316,7 +1548,7 @@ ALTER TABLE ONLY public.taxpayer_phone_number
 
 
 --
--- TOC entry 2960 (class 6104 OID 17869)
+-- TOC entry 2963 (class 6104 OID 17869)
 -- Name: pub_taxes_collection; Type: PUBLICATION; Schema: -; Owner: postgres
 --
 
@@ -1326,7 +1558,7 @@ CREATE PUBLICATION pub_taxes_collection WITH (publish = 'insert, update, delete,
 ALTER PUBLICATION pub_taxes_collection OWNER TO postgres;
 
 --
--- TOC entry 2967 (class 6106 OID 17870)
+-- TOC entry 2970 (class 6106 OID 17870)
 -- Name: pub_taxes_collection agency; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1334,7 +1566,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.agency;
 
 
 --
--- TOC entry 2968 (class 6106 OID 17873)
+-- TOC entry 2971 (class 6106 OID 17873)
 -- Name: pub_taxes_collection agency_phone_number; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1342,7 +1574,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.agency_phone_number
 
 
 --
--- TOC entry 2965 (class 6106 OID 17874)
+-- TOC entry 2968 (class 6106 OID 17874)
 -- Name: pub_taxes_collection company; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1350,7 +1582,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.company;
 
 
 --
--- TOC entry 2964 (class 6106 OID 17875)
+-- TOC entry 2967 (class 6106 OID 17875)
 -- Name: pub_taxes_collection individual; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1358,7 +1590,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.individual;
 
 
 --
--- TOC entry 2966 (class 6106 OID 17876)
+-- TOC entry 2969 (class 6106 OID 17876)
 -- Name: pub_taxes_collection own_rel; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1366,7 +1598,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.own_rel;
 
 
 --
--- TOC entry 2963 (class 6106 OID 17877)
+-- TOC entry 2966 (class 6106 OID 17877)
 -- Name: pub_taxes_collection phone_type; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1374,7 +1606,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.phone_type;
 
 
 --
--- TOC entry 2969 (class 6106 OID 17878)
+-- TOC entry 2972 (class 6106 OID 17878)
 -- Name: pub_taxes_collection tax_payment; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1382,7 +1614,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.tax_payment;
 
 
 --
--- TOC entry 2970 (class 6106 OID 17872)
+-- TOC entry 2973 (class 6106 OID 17872)
 -- Name: pub_taxes_collection tax_type; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1390,7 +1622,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.tax_type;
 
 
 --
--- TOC entry 2961 (class 6106 OID 17871)
+-- TOC entry 2964 (class 6106 OID 17871)
 -- Name: pub_taxes_collection taxpayer; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1398,7 +1630,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.taxpayer;
 
 
 --
--- TOC entry 2962 (class 6106 OID 17879)
+-- TOC entry 2965 (class 6106 OID 17879)
 -- Name: pub_taxes_collection taxpayer_phone_number; Type: PUBLICATION TABLE; Schema: public; Owner: 
 --
 
@@ -1406,7 +1638,7 @@ ALTER PUBLICATION pub_taxes_collection ADD TABLE ONLY public.taxpayer_phone_numb
 
 
 --
--- TOC entry 2996 (class 0 OID 0)
+-- TOC entry 2999 (class 0 OID 0)
 -- Dependencies: 207
 -- Name: TABLE agency; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1415,7 +1647,7 @@ GRANT ALL ON TABLE public.agency TO rep;
 
 
 --
--- TOC entry 2998 (class 0 OID 0)
+-- TOC entry 3001 (class 0 OID 0)
 -- Dependencies: 209
 -- Name: TABLE agency_phone_number; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1424,7 +1656,7 @@ GRANT ALL ON TABLE public.agency_phone_number TO rep;
 
 
 --
--- TOC entry 3000 (class 0 OID 0)
+-- TOC entry 3003 (class 0 OID 0)
 -- Dependencies: 203
 -- Name: TABLE company; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1433,7 +1665,7 @@ GRANT ALL ON TABLE public.company TO rep;
 
 
 --
--- TOC entry 3001 (class 0 OID 0)
+-- TOC entry 3004 (class 0 OID 0)
 -- Dependencies: 202
 -- Name: TABLE individual; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1442,7 +1674,7 @@ GRANT ALL ON TABLE public.individual TO rep;
 
 
 --
--- TOC entry 3002 (class 0 OID 0)
+-- TOC entry 3005 (class 0 OID 0)
 -- Dependencies: 205
 -- Name: TABLE own_rel; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1451,7 +1683,7 @@ GRANT ALL ON TABLE public.own_rel TO rep;
 
 
 --
--- TOC entry 3004 (class 0 OID 0)
+-- TOC entry 3007 (class 0 OID 0)
 -- Dependencies: 201
 -- Name: TABLE phone_type; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1460,7 +1692,7 @@ GRANT ALL ON TABLE public.phone_type TO rep;
 
 
 --
--- TOC entry 3006 (class 0 OID 0)
+-- TOC entry 3009 (class 0 OID 0)
 -- Dependencies: 211
 -- Name: TABLE tax_payment; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1469,7 +1701,7 @@ GRANT ALL ON TABLE public.tax_payment TO rep;
 
 
 --
--- TOC entry 3008 (class 0 OID 0)
+-- TOC entry 3011 (class 0 OID 0)
 -- Dependencies: 213
 -- Name: TABLE tax_type; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1478,7 +1710,7 @@ GRANT ALL ON TABLE public.tax_type TO rep;
 
 
 --
--- TOC entry 3010 (class 0 OID 0)
+-- TOC entry 3013 (class 0 OID 0)
 -- Dependencies: 197
 -- Name: TABLE taxpayer; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1487,7 +1719,7 @@ GRANT ALL ON TABLE public.taxpayer TO rep;
 
 
 --
--- TOC entry 3011 (class 0 OID 0)
+-- TOC entry 3014 (class 0 OID 0)
 -- Dependencies: 199
 -- Name: TABLE taxpayer_phone_number; Type: ACL; Schema: public; Owner: postgres
 --
@@ -1495,7 +1727,7 @@ GRANT ALL ON TABLE public.taxpayer TO rep;
 GRANT ALL ON TABLE public.taxpayer_phone_number TO rep;
 
 
--- Completed on 2019-09-13 15:42:20
+-- Completed on 2019-09-16 15:07:05
 
 --
 -- PostgreSQL database dump complete

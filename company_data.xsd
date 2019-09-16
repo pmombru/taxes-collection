@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+   <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+         <!-- XML Schema Generated from XML Document on Mon Sep 16 2019 11:25:09 GMT-0300 (hora estándar de Argentina) -->
+         <!-- with XmlGrid.net Free Online Service http://xmlgrid.net -->
+         <xs:element name="company-data">
+               <xs:complexType>
+                     <xs:sequence>
+                           <xs:element name="record">
+                                 <xs:complexType>
+                                       <xs:sequence>
+                                             <xs:element name="email" type="xs:string"></xs:element>
+                                             <xs:element name="cuit_number" type="xs:int"></xs:element>
+                                             <xs:element name="comencement_date" type="xs:date"></xs:element>
+                                             <xs:element name="website" type="xs:string"></xs:element>
+                                             <xs:element name="individuals">
+                                                   <xs:complexType>
+                                                         <xs:sequence>
+                                                               <xs:element name="individual" maxOccurs="unbounded">
+                                                                     <xs:complexType>
+                                                                           <xs:sequence>
+                                                                                 <xs:element name="id" type="xs:int"></xs:element>
+                                                                           </xs:sequence>
+                                                                     </xs:complexType>
+                                                               </xs:element>
+                                                         </xs:sequence>
+                                                   </xs:complexType>
+                                             </xs:element>
+                                             <xs:element name="phones">
+                                                   <xs:complexType>
+                                                         <xs:sequence>
+                                                               <xs:element name="phone" maxOccurs="unbounded">
+                                                                     <xs:complexType>
+                                                                           <xs:sequence>
+                                                                                 <xs:element name="number" type="xs:int"></xs:element>
+                                                                                 <xs:element name="type_id" type="xs:int"></xs:element>
+                                                                           </xs:sequence>
+                                                                     </xs:complexType>
+                                                               </xs:element>
+                                                         </xs:sequence>
+                                                   </xs:complexType>
+                                             </xs:element>
+                                       </xs:sequence>
+                                 </xs:complexType>
+                           </xs:element>
+                     </xs:sequence>
+                     <xs:attribute name="xmlns:xsi" type="xs:string"></xs:attribute>
+               </xs:complexType>
+         </xs:element>
+   </xs:schema>
