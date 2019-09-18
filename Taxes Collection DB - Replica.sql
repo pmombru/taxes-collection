@@ -5,7 +5,7 @@
 -- Dumped from database version 11.5
 -- Dumped by pg_dump version 11.5
 
--- Started on 2019-09-18 12:13:22
+-- Started on 2019-09-18 15:21:09
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -676,6 +676,7 @@ INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, paym
 INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (47, 2, 42, 3000, '2017-03-15 00:00:00', 1, '2019-09-16 14:21:32.431987', 'postgres');
 INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (48, 2, 42, 950, '2017-04-15 00:00:00', 4, '2019-09-16 14:21:44.771896', 'postgres');
 INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (49, 2, 42, 1000, '2017-04-22 00:00:00', 3, '2019-09-16 14:22:08.209987', 'postgres');
+INSERT INTO public.tax_payment (payment_id, agency_id, taxpayer_id, amount, payment_date, tax_type_id, created_at, created_by) VALUES (53, 1, 5, 1000, '2019-09-10 00:00:00', 1, '2019-09-18 15:05:58.979543', 'postgres');
 
 
 --
@@ -832,155 +833,155 @@ SELECT pg_catalog.setval('public.taxpayer_taxpayer_id_seq', 1, false);
 
 --
 -- TOC entry 2774 (class 2606 OID 16956)
--- Name: tax_payment CHK_Amount; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: tax_payment Amount must be a positive value; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.tax_payment
-    ADD CONSTRAINT "CHK_Amount" CHECK ((amount > (0)::numeric)) NOT VALID;
+    ADD CONSTRAINT "Amount must be a positive value" CHECK ((amount > (0)::numeric)) NOT VALID;
+
+
+--
+-- TOC entry 2758 (class 2606 OID 16968)
+-- Name: individual Birth date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.individual
+    ADD CONSTRAINT "Birth date cannot be after current date" CHECK ((date_of_birth <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2754 (class 2606 OID 16957)
--- Name: company CHK_Commencement_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: company Commencement date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.company
-    ADD CONSTRAINT "CHK_Commencement_Date" CHECK ((commencement_date <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Commencement date cannot be after current date" CHECK ((commencement_date <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2749 (class 2606 OID 16958)
--- Name: agency CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: agency Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.agency
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2751 (class 2606 OID 16959)
--- Name: agency_phone_number CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: agency_phone_number Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.agency_phone_number
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2755 (class 2606 OID 16960)
--- Name: company CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: company Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.company
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
--- TOC entry 2758 (class 2606 OID 16961)
--- Name: individual CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- TOC entry 2759 (class 2606 OID 16961)
+-- Name: individual Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.individual
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2764 (class 2606 OID 16962)
--- Name: own_rel CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: own_rel Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.own_rel
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2769 (class 2606 OID 16963)
--- Name: phone_type CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: phone_type Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.phone_type
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2775 (class 2606 OID 16964)
--- Name: tax_payment CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: tax_payment Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.tax_payment
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2780 (class 2606 OID 16965)
--- Name: tax_type CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: tax_type Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.tax_type
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2790 (class 2606 OID 16966)
--- Name: taxpayer_phone_number CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: taxpayer_phone_number Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.taxpayer_phone_number
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2784 (class 2606 OID 16967)
--- Name: taxpayer CHK_Created_At; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: taxpayer Created At date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.taxpayer
-    ADD CONSTRAINT "CHK_Created_At" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
-
-
---
--- TOC entry 2759 (class 2606 OID 16968)
--- Name: individual CHK_Date_Of_Birth; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE public.individual
-    ADD CONSTRAINT "CHK_Date_Of_Birth" CHECK ((date_of_birth <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Created At date cannot be after current date" CHECK ((created_at <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2785 (class 2606 OID 16969)
--- Name: taxpayer CHK_Email; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: taxpayer Email must have a valid format; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.taxpayer
-    ADD CONSTRAINT "CHK_Email" CHECK (((email)::text ~ similar_escape('[A-Za-z0-9._%-]+@[A-Za-z0-9._%-]+\.[A-Za-z]{2,4}'::text, NULL::text))) NOT VALID;
+    ADD CONSTRAINT "Email must have a valid format" CHECK (((email)::text ~ similar_escape('[A-Za-z0-9._%-]+@[A-Za-z0-9._%-]+\.[A-Za-z]{2,4}'::text, NULL::text))) NOT VALID;
 
 
 --
 -- TOC entry 2776 (class 2606 OID 16970)
--- Name: tax_payment CHK_Payment_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: tax_payment Payment date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.tax_payment
-    ADD CONSTRAINT "CHK_Payment_Date" CHECK ((payment_date <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Payment date cannot be after current date" CHECK ((payment_date <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2765 (class 2606 OID 16971)
--- Name: own_rel CHK_Start_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: own_rel Start date cannot be after current date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.own_rel
-    ADD CONSTRAINT "CHK_Start_Date" CHECK ((start_date <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "Start date cannot be after current date" CHECK ((start_date <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
 -- TOC entry 2786 (class 2606 OID 16972)
--- Name: taxpayer CHK_Type; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: taxpayer Type can only be C for Company or I for Individual; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.taxpayer
-    ADD CONSTRAINT "CHK_Type" CHECK (((type)::text = ANY (ARRAY[('I'::character varying)::text, ('C'::character varying)::text]))) NOT VALID;
+    ADD CONSTRAINT "Type can only be C for Company or I for Individual" CHECK (((type)::text = ANY (ARRAY[('I'::character varying)::text, ('C'::character varying)::text]))) NOT VALID;
 
 
 --
@@ -1359,7 +1360,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES  TO readonly;
 
 
--- Completed on 2019-09-18 12:13:23
+-- Completed on 2019-09-18 15:21:09
 
 --
 -- PostgreSQL database dump complete
