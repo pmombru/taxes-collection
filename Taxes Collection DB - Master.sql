@@ -5,7 +5,7 @@
 -- Dumped from database version 11.5
 -- Dumped by pg_dump version 11.5
 
--- Started on 2019-09-18 09:47:24
+-- Started on 2019-09-18 12:12:17
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1103,7 +1103,7 @@ SELECT pg_catalog.setval('public.agency_phone_number_rel_id_seq', 3, true);
 -- Name: own_rel_rel_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.own_rel_rel_id_seq', 39, true);
+SELECT pg_catalog.setval('public.own_rel_rel_id_seq', 41, true);
 
 
 --
@@ -1121,7 +1121,7 @@ SELECT pg_catalog.setval('public.phone_type_phone_type_id_seq', 3, true);
 -- Name: tax_payment_payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.tax_payment_payment_id_seq', 49, true);
+SELECT pg_catalog.setval('public.tax_payment_payment_id_seq', 50, true);
 
 
 --
@@ -1148,7 +1148,7 @@ SELECT pg_catalog.setval('public.taxpayer_phone_number_rel_id_seq', 41, true);
 -- Name: taxpayer_taxpayer_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.taxpayer_taxpayer_id_seq', 53, true);
+SELECT pg_catalog.setval('public.taxpayer_taxpayer_id_seq', 59, true);
 
 
 --
@@ -1741,7 +1741,7 @@ GRANT ALL ON TABLE public.taxpayer TO rep;
 GRANT ALL ON TABLE public.taxpayer_phone_number TO rep;
 
 
--- Completed on 2019-09-18 09:47:25
+-- Completed on 2019-09-18 12:12:18
 
 --
 -- PostgreSQL database dump complete
