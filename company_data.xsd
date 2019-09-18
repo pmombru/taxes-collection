@@ -10,7 +10,7 @@
                                        <xs:sequence>
                                              <xs:element name="email" type="xs:string"></xs:element>
                                              <xs:element name="cuit_number" type="xs:int"></xs:element>
-                                             <xs:element name="comencement_date" type="xs:date"></xs:element>
+                                             <xs:element name="commencement_date" type="xs:date"></xs:element>
                                              <xs:element name="website" type="xs:string"></xs:element>
                                              <xs:element name="individuals">
                                                    <xs:complexType>

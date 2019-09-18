@@ -5,7 +5,7 @@
 -- Dumped from database version 11.5
 -- Dumped by pg_dump version 11.5
 
--- Started on 2019-09-17 14:03:42
+-- Started on 2019-09-18 09:49:08
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -194,7 +194,7 @@ ALTER SEQUENCE public.agency_phone_number_rel_id_seq OWNED BY public.agency_phon
 CREATE TABLE public.company (
     taxpayer_id integer NOT NULL,
     cuit_number character varying NOT NULL,
-    comencement_date date NOT NULL,
+    commencement_date date NOT NULL,
     website character varying,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by character varying DEFAULT CURRENT_USER NOT NULL
@@ -564,22 +564,24 @@ INSERT INTO public.agency_phone_number (rel_id, agency_id, phone_number, phone_t
 -- Data for Name: company; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (2, '4781010', '2005-07-22', 'www.newcompany.com', '2019-09-09 14:59:12.357671', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (3, '21212121', '2007-11-01', 'www.abccompany.com', '2019-09-09 14:59:12.357671', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (4, '34343434', '2008-01-20', 'www.xtracompany.com', '2019-09-09 14:59:12.357671', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (6, '102020', '2001-03-21', 'www.byco.com', '2019-09-09 14:59:12.357671', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (7, '717171717171', '2003-12-07', 'www.nextco.com', '2019-09-09 14:59:12.357671', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (11, '40404040', '2001-10-10', 'www.test.com', '2019-09-09 17:18:20.312411', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (17, '20201010', '2019-02-21', 'www.cdhcompany.com', '2019-09-11 15:39:59.663919', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (25, '12340987', '2007-02-02', 'www.test2lmted.com', '2019-09-13 10:32:41.691266', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (27, '1111111111', '2007-04-02', 'www.test5lmted.com', '2019-09-13 10:44:52.235455', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (31, '222222222', '2007-11-02', 'www.test6lmted.com', '2019-09-13 10:47:01.327014', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (32, '3333333', '2008-10-17', 'www.test7lmted.com', '2019-09-13 10:49:34.202729', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (34, '444444444', '2009-11-07', 'www.test8lmted.com', '2019-09-13 10:54:32.440007', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (38, '5555', '2010-12-07', 'www.test9lmted.com', '2019-09-13 11:01:18.111006', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (41, '80808080', '2005-07-10', 'www.abctest.com', '2019-09-16 11:00:39.448538', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (42, '9191', '2010-08-10', 'www.truetest.com', '2019-09-16 11:05:35.436566', 'postgres');
-INSERT INTO public.company (taxpayer_id, cuit_number, comencement_date, website, created_at, created_by) VALUES (47, '4040', '2011-08-10', 'www.truetest.com', '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (2, '4781010', '2005-07-22', 'www.newcompany.com', '2019-09-09 14:59:12.357671', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (3, '21212121', '2007-11-01', 'www.abccompany.com', '2019-09-09 14:59:12.357671', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (4, '34343434', '2008-01-20', 'www.xtracompany.com', '2019-09-09 14:59:12.357671', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (6, '102020', '2001-03-21', 'www.byco.com', '2019-09-09 14:59:12.357671', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (7, '717171717171', '2003-12-07', 'www.nextco.com', '2019-09-09 14:59:12.357671', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (11, '40404040', '2001-10-10', 'www.test.com', '2019-09-09 17:18:20.312411', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (17, '20201010', '2019-02-21', 'www.cdhcompany.com', '2019-09-11 15:39:59.663919', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (25, '12340987', '2007-02-02', 'www.test2lmted.com', '2019-09-13 10:32:41.691266', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (27, '1111111111', '2007-04-02', 'www.test5lmted.com', '2019-09-13 10:44:52.235455', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (31, '222222222', '2007-11-02', 'www.test6lmted.com', '2019-09-13 10:47:01.327014', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (32, '3333333', '2008-10-17', 'www.test7lmted.com', '2019-09-13 10:49:34.202729', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (34, '444444444', '2009-11-07', 'www.test8lmted.com', '2019-09-13 10:54:32.440007', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (38, '5555', '2010-12-07', 'www.test9lmted.com', '2019-09-13 11:01:18.111006', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (41, '80808080', '2005-07-10', 'www.abctest.com', '2019-09-16 11:00:39.448538', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (42, '9191', '2010-08-10', 'www.truetest.com', '2019-09-16 11:05:35.436566', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (47, '4040', '2011-08-10', 'www.truetest.com', '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (50, '20202121', '2005-11-22', 'www.test20lmted.com', '2019-09-18 09:36:04.961103', 'postgres');
+INSERT INTO public.company (taxpayer_id, cuit_number, commencement_date, website, created_at, created_by) VALUES (51, '21212222', '2005-01-20', 'www.test21lmted.com', '2019-09-18 09:38:57.706731', 'postgres');
 
 
 --
@@ -617,6 +619,10 @@ INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, creat
 INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (30, 1, 42, '2010-08-10 00:00:00', '2019-09-16 11:05:35.436566', 'postgres');
 INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (34, 5, 47, '2011-08-10 00:00:00', '2019-09-16 11:14:18.990897', 'postgres');
 INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (35, 1, 47, '2011-08-10 00:00:00', '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (36, 1, 50, '2005-11-22 00:00:00', '2019-09-18 09:36:04.961103', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (37, 5, 50, '2005-11-22 00:00:00', '2019-09-18 09:36:04.961103', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (38, 5, 51, '2005-01-20 00:00:00', '2019-09-18 09:38:57.706731', 'postgres');
+INSERT INTO public.own_rel (rel_id, individual_id, company_id, start_date, created_at, created_by) VALUES (39, 1, 51, '2005-01-20 00:00:00', '2019-09-18 09:38:57.706731', 'postgres');
 
 
 --
@@ -709,6 +715,8 @@ INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) V
 INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (41, 'C', 'taxpayer15@gmail.com', '2019-09-16 11:00:39.448538', 'postgres');
 INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (42, 'C', 'taxpayer18@gmail.com', '2019-09-16 11:05:35.436566', 'postgres');
 INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (47, 'C', 'taxpayer18@gmail.com', '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (50, 'C', 'taxpayer20@gmail.com', '2019-09-18 09:36:04.961103', 'postgres');
+INSERT INTO public.taxpayer (taxpayer_id, type, email, created_at, created_by) VALUES (51, 'C', 'taxpayer21@gmail.com', '2019-09-18 09:38:57.706731', 'postgres');
 
 
 --
@@ -742,6 +750,12 @@ INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, pho
 INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (33, 47, '5454545454', 1, '2019-09-16 11:14:18.990897', 'postgres');
 INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (34, 47, '10203040', 2, '2019-09-16 11:14:18.990897', 'postgres');
 INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (35, 47, '7777777777', 3, '2019-09-16 11:14:18.990897', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (36, 50, '10101010', 1, '2019-09-18 09:36:04.961103', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (37, 50, '20202020', 2, '2019-09-18 09:36:04.961103', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (38, 50, '30303030', 2, '2019-09-18 09:36:04.961103', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (39, 51, '30303030', 1, '2019-09-18 09:38:57.706731', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (40, 51, '20202020', 2, '2019-09-18 09:38:57.706731', 'postgres');
+INSERT INTO public.taxpayer_phone_number (rel_id, taxpayer_id, phone_number, phone_type_id, created_at, created_by) VALUES (41, 51, '10101010', 3, '2019-09-18 09:38:57.706731', 'postgres');
 
 
 --
@@ -827,11 +841,11 @@ ALTER TABLE public.tax_payment
 
 --
 -- TOC entry 2754 (class 2606 OID 16957)
--- Name: company CHK_Comencement_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: company CHK_Commencement_Date; Type: CHECK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.company
-    ADD CONSTRAINT "CHK_Comencement_Date" CHECK ((comencement_date <= CURRENT_TIMESTAMP)) NOT VALID;
+    ADD CONSTRAINT "CHK_Commencement_Date" CHECK ((commencement_date <= CURRENT_TIMESTAMP)) NOT VALID;
 
 
 --
@@ -1345,7 +1359,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES  TO readonly;
 
 
--- Completed on 2019-09-17 14:03:43
+-- Completed on 2019-09-18 09:49:09
 
 --
 -- PostgreSQL database dump complete
